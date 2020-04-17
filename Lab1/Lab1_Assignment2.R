@@ -39,7 +39,7 @@ lines(xvals,dinvchisq(xvals, n, thaosq), col="red")
 
 G=2*pnorm(sqrt(sigmasq/2), mean=0, sd=1)-1
 hist(G, breaks=100)
-plot(density(G), main="Density function of simulated values of the Gini coefficient with credible intervals")
+plot(density(G), main="Density function of simulated values of the Gini coefficient")
 
 ## As seen in the plot the gini coefficient is centered at around 0.2 which means a rather inequal distribution.
 
@@ -53,6 +53,7 @@ GSorted=sort(G)[(0.05*length(G)+1):(0.95*length(G))]
 # 90 % credible interval for G through the simulated draws
 G_CredInterval=c(min(GSorted),max(GSorted))
 print(G_CredInterval)
+plot(density(G), main="Density function of simulated values of the Gini coefficient with credible intervals")
 abline(v = G_CredInterval[1], col="blue")
 abline(v = G_CredInterval[2], col="blue")
 
@@ -64,7 +65,7 @@ GDensity_CredInterval=c(min(GDensity_CredInterval_Vals$x), max(GDensity_CredInte
 print(GDensity_CredInterval)
 abline(v = GDensity_CredInterval[1], col="red")
 abline(v = GDensity_CredInterval[2], col="red")
-title(sub="Blue - Simulated credible interval, Red - Kernel estimated credible interval")
+title(sub="Blue = Simulated credible interval, Red = Kernel estimated credible interval")
 
 ## As seen in the plot the credible intervals are quite similar with small deviations. 
 
