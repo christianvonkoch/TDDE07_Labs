@@ -43,7 +43,7 @@ plot(density(G), main="Density function of simulated values of the Gini coeffici
 
 ## As seen in the plot the gini coefficient is centered at around 0.2 which means a rather inequal distribution.
 
-## Use the posterior draws from b) to compute a 90% equal tail credible interval for G. A 90% equal tail interval
+## c) Use the posterior draws from b) to compute a 90% equal tail credible interval for G. A 90% equal tail interval
 ## (a,b) cuts off 5% percent of the posterior probability mass to the left of a, and 5% to the right of b. Also, 
 ## do a kernel density estimate of the posterior of G using the density function in R with defaultsettings, 
 ## and use that kernel density estimate to compute a 90% Highest Posterior Density interval for G. Compare the 

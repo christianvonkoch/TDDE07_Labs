@@ -18,6 +18,7 @@ data_radian=c(-2.44,2.14,2.54,1.83,2.02,2.33,-2.79,2.23,2.07,2.02)
 my=2.39
 lambda=1
 
+# Function for computing the vonMisesDistrib for a given dataset
 vonMisesDistrib = function(kappa, data, my){
   likelihood=1
   for (i in data) {
@@ -26,12 +27,14 @@ vonMisesDistrib = function(kappa, data, my){
   return(likelihood)
 }
 
+# Function for computing the exponential distribution
 exponDistrib = function(data, lambda) {
   return(1/lambda*exp(-1/lambda*data))
 }
 
 kappa_values=seq(0,10,0.01)
 
+# Function for computing the posterior distribution
 posteriorDistrib = function(kappa, lambda, data, my) {
   likelihood=vonMisesDistrib(kappa, data, my)
   prior=exponDistrib(kappa, lambda)
@@ -47,6 +50,8 @@ plot(kappa_values, posteriorLikelihood, xlab="Kappa", ylab="Likelihood",
 
 ## b) Find the (approximate) posterior mode of k from the information in a).
 
+# Puts likelihood values with corresponding kappa-values to be able to retrieve the kappa-value corresponding to
+## the highest likelihood (mode)
 posterior.df=data.frame(kappa=kappa_values, likelihood=posteriorLikelihood)
 posteriorMode=subset(posterior.df, likelihood==max(likelihood), kappa)
 print(posteriorMode$kappa)
