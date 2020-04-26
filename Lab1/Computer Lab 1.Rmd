@@ -114,8 +114,8 @@ set.seed(12345)
 drawX=rchisq(10000, n)
 sigmasq=(n)*thaosq/drawX
 xvals=seq(0.001, 3, 0.001)
-plot(density(sigmasq), main="Density of sigma^2", sub="Black = simulated distribution, 
-     Red = actual distribution")
+plot(density(sigmasq), main="Density of sigma^2", 
+     sub="Black = simulated distribution, Red = actual distribution")
 lines(xvals,dinvchisq(xvals, n, thaosq), col="red")
 ```
 
@@ -189,7 +189,7 @@ posteriorDistrib = function(kappa, lambda, data, my) {
 
 posteriorLikelihood=posteriorDistrib(kappa_values, lambda, data_radian, my)
 plot(kappa_values, posteriorLikelihood, xlab="Kappa", ylab="Likelihood",
-     main="Posterior likelihood for different kappavalues", type="l", col="blue")
+     main="Posterior likelihood for different kappa values", type="l", col="blue")
 ```
 
 As seen in the plot the likelihood of the posterior peaks between 2 and 4 and then dies off for larger kappa-values.

@@ -1,4 +1,4 @@
-## 3.a) Bayesian inference for the concentration parameter in the von Mises distribution. This exercise is concerned
+## Assignment 3: Bayesian inference for the concentration parameter in the von Mises distribution. This exercise is concerned
 ## with directional data. The point is to show you that the posterior distribution for somewhat weird models can be
 ## obtained by plotting it over a grid of values. The data points are observed wind directions at a given location on
 ## ten different days. The data are recorded in degrees: (40, 303, 326, 285, 296, 314, 20, 308, 299, 296) where North
