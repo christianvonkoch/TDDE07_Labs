@@ -26,10 +26,12 @@ v0=4
 sigma0_sq=1
 omega0Inv=solve(omega0)
 
+# Function for returning the response variable
 calcRegr = function(betaMatrix, row, x) {
   return(betaMatrix[row,1]+betaMatrix[row,2]*x+betaMatrix[row,3]*x^2)
 }
 
+# Function for drawing simulated betavalues
 drawBeta = function(my, sigma_sq, omegaInv) {
   return(rmvnorm(1, mean=my, sigma=sigma_sq*omegaInv))
 }
@@ -39,6 +41,7 @@ set.seed(12345)
 drawX=rchisq(nDraws, v0)
 sigma_sq=(v0)*sigma0_sq/drawX
 betaMatrix=matrix(0,nDraws,3)
+# Create new plot with specific settings so that the loop can overlay plots
 plot.new()
 plot.window(xlim=c(0,1), ylim=c(-50,50))
 axis(side=1)
@@ -80,12 +83,14 @@ response_post_temp=matrix(0,nDraws,length(temp$time))
 for (i in 1:nDraws) {
   betaMatrix_post[i,]=drawBeta(my_n, sigma_sq_post[i], omega_n_Inv)
 }
+# Plots the marginal distributions for the different beta-values
 hist(betaMatrix_post[,1], breaks=100, main="Marginal posterior for beta0")
 hist(betaMatrix_post[,2], breaks=100, main="Marginal posterior for beta1")
 hist(betaMatrix_post[,3], breaks=100, main="Marginal posterior for beta2")
 
 plot(temp$time, Y, main="Plot of the temp data for different times", col="blue", 
      xlab="Time coefficient", ylab="Temp")
+# Applies function calcRegr to the time-values for each of the drawn betas and stores the results in matrix
 for (i in 1:nDraws) {
   betaTemp=sapply(temp$time, calcRegr, betaMatrix=betaMatrix_post, row=i)
   response_post_temp[i,]=betaTemp
@@ -93,6 +98,7 @@ for (i in 1:nDraws) {
 
 response_post=c()
 credInterval=matrix(0, length(temp$time), 2)
+# Retrieves the median of the response values as well as obtaining the upper and lower bound of credInterval
 for (i in 1:length(temp$time)) {
   sortedTemp=sort(response_post_temp[,i])
   response_post=c(response_post, (sortedTemp[500]+sortedTemp[501])/2)
@@ -113,10 +119,12 @@ title(sub="Grey = 95 % credible intervals, Black = Median")
 ## distribution of xtilde. [Hint: The regression curve is quadratic. You can find a simple formula for xtilde
 ## given beta0, beta1 and beta2]
 
+# Function for calculating the time-value which yields the maximum response (the derivative of response function)
 calcMaxTemp = function(betaMatrix, row) {
   return(-betaMatrix[row,2]/(2*betaMatrix[row,3]))
 }
 
+# For each of the draws the time-value which yields the maximum temperature is stored in a vector
 time_max_temp=c()
 for (i in 1:nDraws) {
   time_max_temp=c(time_max_temp, calcMaxTemp(betaMatrix_post, i))
@@ -126,7 +134,7 @@ hist(time_max_temp, breaks=1000, xlim=c(0,1), main="Frequency of max temperature
      xlab="Temperature")
 
 ## As seen in the histogram the derived highest temperature from the simulated models is mostly present in late
-## june which seems reasonable if applying to Motala in Sweden where the temperature is the highest during the 
+## june which seems reasonable if applying to Malmslatt in Sweden where the temperature is the highest during the 
 ## summer time. 
 
 ## d) Say now that you want to estimate a polynomial model of order 7, but you suspect that higher order terms
