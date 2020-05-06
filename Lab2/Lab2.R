@@ -276,16 +276,18 @@ plot(density(womanWorkPred), main="Density of the predicted probabilities", xlab
 ## [Hint: Which distribution can be described as a sum of Bernoulli random variables?]
 
 makePredLogRegMultiple = function(data, mean, sigma, nDraws, n) {
-  betaPred = rmvnorm(nDraws, mean=mean, sigma=sigma)
-  linearPred = betaPred %*% data
-  logPred = sigmoid(linearPred)
-  multiplePred=rbinom(nDraws, n, sum(ifelse(logPred>0.5, 1, 0))/nDraws)
+  multiplePred=c()
+  for (i in 1:nDraws) {
+    betaDraw = makePredLogReg(data, mean, sigma, 1)
+    multiplePred=c(multiplePred, rbinom(1, n, betaDraw))
+  }
   hist(multiplePred, breaks=100, main=paste("Distribution for prediction made on", n, "women"), 
        xlab="No. of women")
 }
 
-set.seed(12345)
-makePredLogRegMultiple(woman, postMode, postCov, nDraws, 10)
+makePredLogRegMultiple(woman, postMode, postCov, 10000, 10)
 
-## As seen in the binomial case it is very unlikely that any of the women would be working given the params
-## inputted to the function. The most probable outcome would be that none of the 10 women are working. 
+## As seen in the histogram the binomial case resembles the density of predicted probabilities with the
+## highest density found at 2 women. This result seems reasonable since when the number of draws taken from 
+## the binomial distribution goes towards infinity the shape of the corresponding distribution will resemble
+## the shape of the distribution for the probability p in the Bernoulli case, more and more. 
