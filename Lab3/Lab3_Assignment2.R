@@ -19,7 +19,7 @@ summary(model)
 
 ## The covariates that are significant are VerifyID, Sealed, MajBlem, LogBook, MinBidShare.
 
-## Let's now do a Bayesian analysis of the Poisson regression. Let the prior be Beta~N(0,100*(XTX)^(-1)) where X
+## b) Let's now do a Bayesian analysis of the Poisson regression. Let the prior be Beta~N(0,100*(XTX)^(-1)) where X
 ## is the n x p covariate matrix. This is a commonly used prior which is called Zellner's g-prior. Assume first that
 ## the posterior density is approximately multivariate normal: Beta given y ~ N(Beta~, Jy(Beta~)^(-1)) where Beta~
 ## is the posterior mode and Jy(Beta~) is the negative Hessian at the posterior mode. Beta~ and J can be obtained
@@ -35,17 +35,6 @@ covNames=names(ebay[,2:ncol(ebay)])
 # Constructing prior
 mu_prior = rep(0,nFeatures)
 sigma_prior = 100*solve(t(X)%*%X) 
-
-# Function for calculating factorial computationally efficient
-calcLogSum = function (Y) {
-  temp1 = 0
-  for (i in Y) {
-    for (j in 1:i) {
-      temp1 = temp1 + log(j)
-    }
-  }
-  return(temp1)
-}
 
 # Defining function for returning the log posterior
 logPostPoisson = function(beta, Y, X, mu, sigma) {
@@ -94,6 +83,7 @@ print(approx_PostStd)
 ## new Metropolis function to sample from the posterior of beta in the Poisson regression for the eBay dataset. 
 ## Assess MCMC convergence by graphical methods. 
 
+# Defining function for sampling through metropolishastings
 RVMSampler = function(previousVal, postCov, c, myFunction, ...) {
   proposalVal=rmvnorm(1, mean=previousVal, sigma=c*postCov)
   alpha=min(1, exp(myFunction(proposalVal,...)-myFunction(previousVal, ...)))
@@ -107,6 +97,7 @@ RVMSampler = function(previousVal, postCov, c, myFunction, ...) {
 
 nDraws=5000
 beta_matrix = matrix(0, nDraws, ncol(X))
+# Setting initial values of beta to same initVals as in the optimizer (taken randomly from normal distrib)
 beta_matrix[1,]=initVals
 c=0.5
 set.seed(12345)
@@ -119,9 +110,11 @@ for(i in 1:nDraws) {
 
 iter=seq(1,nDraws,1)
 for (i in 1:9) {
-  plot(iter, beta_matrix[,i], type="l", main=paste("Convergence plot for covariate", covNames[i]))
+  plot(iter, beta_matrix[,i], type="l", main=paste("Convergence plot for covariate", covNames[i]),
+       ylab=covNames[i])
 }
 
+# Calculating distinct rows and dividing by total rows to get average acceptance probability
 avg_alpha=dim(beta_matrix[!duplicated(beta_matrix),])[1]/dim(beta_matrix)[1]
 
 ## As seen in the convergence plots the covariates oscillate around the same value which was found in the previous
@@ -129,17 +122,21 @@ avg_alpha=dim(beta_matrix[!duplicated(beta_matrix),])[1]/dim(beta_matrix)[1]
 ## in a way to acquire an average acceptance rate of approximately 25-30%, the average acceptance rate were 
 ## calculated to approximately 33 % which is deemed to be sufficiently satisfying. 
 
-## Use the MCMC draws from c) to simulate from the predictive distribution of the number of bidders in a new
+## d) Use the MCMC draws from c) to simulate from the predictive distribution of the number of bidders in a new
 ## auction with the characteristics below. Plot the predictive distribution. What is the probability of no bidders
 ## in this new auction? Use vector x=c(1,1,1,1,0,0,0,1,0.5)
 
 obs_X=c(1,1,1,1,0,0,0,1,0.5)
+# Removing first 1000 rows since they are before the start of the convergence
 approx_post_beta=beta_matrix[1001:nrow(beta_matrix),]
 mean_vector=exp(approx_post_beta%*%obs_X)
 set.seed(12345)
 pred_distrib_bidder=rpois(10000, mean_vector)
-hist(pred_distrib_bidder, breaks=10, col="grey")
+barplot(table(pred_distrib_bidder),
+        main="Histogram of the predictive distribution of no. of bidders", xlab="No. of bidders")
+# Calculating the probability of no bidders with the given characteristics
 prob_noBidders=sum(pred_distrib_bidder==0)/length(pred_distrib_bidder)
+print(prob_noBidders)
 
 ## As seen in the predictive distribution the majority of cases given the specified characteristics, will result in
 ## either 0 or 1 bidder with the probability decreasing for additional bidders. The calculated probability for
