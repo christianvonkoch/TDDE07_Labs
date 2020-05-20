@@ -116,6 +116,10 @@ pairs(fit_y)
 
 ## The convergence of the samplers are different. For the first sample which used phi=0.3, the convergence is
 ## evident whilst for the second sample the posterior distribution is not obvious. This correlates with the fact
-## the credible intervals for the parameters on the second sample were very wide. 
+## the credible intervals for the parameters on the second sample were very wide. What we can see from the 
+## posterior distribution obtained by the second sampler is that for lower values of phi the distribution centers
+## around a value between 10 and 20. This is a behaviour similar to what is shown in the posterior for the first
+## sampler, where phi was set to 0.3 initially, since this distribution was much tighter around the value of 10
+## for mu.
 
 
