@@ -38,7 +38,8 @@ iter=seq(1,200,1)
 counter=1
 for (i in 1:length(phi_vector)) {
   if (counter %% 6 == 0) {
-    plot(iter, results_matrix[,i], main="Plot of realization of AR-process", sub=paste("Phi =", phi_vector[i]),
+    plot(iter, results_matrix[,i], main="Plot of realization of AR-process", 
+         sub=paste("Phi =", phi_vector[i]),
          xlab="Iteration", ylab="Value", type="l", col="grey")
   }
   counter=counter+1
@@ -94,20 +95,10 @@ print(fit_x)
 print(fit_y)
 
 # Do traceplots of the first chain
-par(mfrow = c(1,1))
 plot(postDraws_x$mu[1000:2000], postDraws_x$phi[1000:2000],ylab="phi", xlab="mu", main="Traceplot")
-# Do automatic traceplots of all chains
-traceplot(fit_x)
-# Bivariate posterior plots
-pairs(fit_x)
 
 # Do traceplots of the first chain
-par(mfrow = c(1,1))
 plot(postDraws_y$mu[1000:2000],postDraws_y$phi[1000:2000],ylab="mu", xlab="mu",main="Traceplot")
-# Do automatic traceplots of all chains
-traceplot(fit_y)
-# Bivariate posterior plots
-pairs(fit_y)
 
 ## The posterior mean, number of effective samples as well as 95 % credible interval are shown above for both of the
 ## simulated AR(1)-processes. It is possible to estimate the true values of the parameters for the sample which
@@ -184,11 +175,11 @@ cred_interval_post_mean=matrix(0,dim(quantiles_post_mean)[1], 2)
 cred_interval_post_mean[,1]=quantiles_post_mean[,1]
 cred_interval_post_mean[,2]=quantiles_post_mean[,ncol(quantiles_post_mean)]
 
-lines(cred_interval_post_mean[,1], col="gray", lty=21)
-lines(cred_interval_post_mean[,2], col="gray", lty=21)
+lines(cred_interval_post_mean[,1], col="gray", lty=1)
+lines(cred_interval_post_mean[,2], col="gray", lty=1)
 title(main="Plot of data vs approximated posterior")
 legend("topleft", box.lty= 1, pch=c(1,NaN,NaN), legend=c("Data", "Posterior mean", "95 % cred. interval"),
-       col=c("blue", "black", "gray"), lwd=c(NaN,1,1), lty=c(NaN, 1, 21))
+       col=c("blue", "black", "gray"), lwd=c(NaN,1,1), lty=c(NaN, 1, 1))
 
 ## As seen in the plot above the posterior mean follows the data accurately. Almost all of the datapoints are
 ## inside the credible intervals which aren't that wide which indicates that the approximated posterior
@@ -245,11 +236,11 @@ cred_interval_post_mean_prior=matrix(0,dim(quantiles_post_mean)[1], 2)
 cred_interval_post_mean_prior[,1]=quantiles_post_mean_prior[,1]
 cred_interval_post_mean_prior[,2]=quantiles_post_mean_prior[,ncol(quantiles_post_mean)]
 
-lines(cred_interval_post_mean_prior[,1], col="gray", lty=21)
-lines(cred_interval_post_mean_prior[,2], col="gray", lty=21)
+lines(cred_interval_post_mean_prior[,1], col="gray", lty=1)
+lines(cred_interval_post_mean_prior[,2], col="gray", lty=1)
 title(main="Plot of data vs approximated posterior")
 legend("topleft", box.lty= 1, pch=c(1,NaN,NaN), legend=c("Data", "Posterior mean", "95 % cred. interval"),
-       col=c("blue", "black", "gray"), lwd=c(NaN,1,1), lty=c(NaN, 1, 21))
+       col=c("blue", "black", "gray"), lwd=c(NaN,1,1), lty=c(NaN, 1, 1))
 
 ## Now when we have specified a small prior for sigma it is noteable in the new plot that the posterior mean
 ## varies less and moves more smoothly. The consequence of this is that more datapoints lie outside of the 
