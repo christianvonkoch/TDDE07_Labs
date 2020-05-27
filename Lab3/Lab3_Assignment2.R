@@ -13,7 +13,7 @@ ebay = read.table("ebayNumberOfBidderData.dat", header=TRUE)
 data = ebay[, -2]
 
 # Create model
-model = glm(nBids~., family="poisson", data=ebay)
+model = glm(nBids~., family="poisson", data=data)
 print(model$coefficients)
 summary(model)
 
@@ -109,10 +109,12 @@ for(i in 1:nDraws) {
 }
 
 iter=seq(1,nDraws,1)
+par(mfrow=c(3,3))
 for (i in 1:9) {
   plot(iter, beta_matrix[,i], type="l", main=paste("Convergence plot for covariate", covNames[i]),
        ylab=covNames[i])
 }
+par(mfrow=c(1,1), new=FALSE)
 
 # Calculating distinct rows and dividing by total rows to get average acceptance probability
 avg_alpha=dim(beta_matrix[!duplicated(beta_matrix),])[1]/dim(beta_matrix)[1]

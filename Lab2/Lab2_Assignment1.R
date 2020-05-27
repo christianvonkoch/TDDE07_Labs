@@ -20,10 +20,11 @@ temp = read.table("TempLinkoping.txt", header=TRUE)
 library(mvtnorm)
 # Defining the parameters for the prior distribution
 # Switched to beta0=0 since it seems more reasonable and -10 seems too low.
-my0=c(0,100,-100)
-omega0=0.01*diag(3)
-v0=4
-sigma0_sq=1
+my0=c(-10,100,-100)
+omega0=0.5*diag(3)
+# Using v0 = 365 since we have 365 observations
+v0=365
+sigma0_sq=0.5
 omega0Inv=solve(omega0)
 
 # Function for returning the response variable
@@ -87,6 +88,7 @@ for (i in 1:nDraws) {
 hist(betaMatrix_post[,1], breaks=100, main="Marginal posterior for beta0")
 hist(betaMatrix_post[,2], breaks=100, main="Marginal posterior for beta1")
 hist(betaMatrix_post[,3], breaks=100, main="Marginal posterior for beta2")
+hist(sigma_sq_post, breaks=100, main="Marginal posterior for sigmasq")
 
 plot(temp$time, Y, main="Plot of the temp data for different times", col="blue", 
      xlab="Time coefficient", ylab="Temp")
@@ -102,7 +104,7 @@ credInterval=matrix(0, length(temp$time), 2)
 for (i in 1:length(temp$time)) {
   sortedTemp=sort(response_post_temp[,i])
   response_post=c(response_post, (sortedTemp[500]+sortedTemp[501])/2)
-  credInterval[i,]=c(sortedTemp[(0.025*length(sortedTemp)+1)], sortedTemp[(0.975*length(sortedTemp))])
+  credInterval[i,]=quantile(response_post_temp[,i], probs=c(0.025, 0.975))
 }
 
 lines(temp$time, response_post)

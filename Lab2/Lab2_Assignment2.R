@@ -68,11 +68,7 @@ print(approx_PostStd)
 # Compute marginal distribution for nSmallChild
 NSmallChild_mode = as.numeric(postMode["NSmallChild"])
 NSmallChild_std = as.numeric(approx_PostStd["NSmallChild"])
-set.seed(12345)
-NSmallChild_distrib = rnorm(10000, mean=NSmallChild_mode, sd=NSmallChild_std)
-sorted_NSmallChild=sort(NSmallChild_distrib)
-credInterval_NSmallChild = c(sorted_NSmallChild[(0.025*length(sorted_NSmallChild)+1)],
-                             sorted_NSmallChild[(0.975*length(sorted_NSmallChild))])
+credInterval_NSmallChild = qnorm(p=c(0.025, 0.975), mean=NSmallChild_mode, sd=NSmallChild_std)
 print(paste("The lower bound of the 95 % credible interval for the feature NSmallChild is",
             round(credInterval_NSmallChild[1], 6), "and the upper bound is", 
             round(credInterval_NSmallChild[2], 6)))
@@ -110,8 +106,11 @@ nDraws=10000
 woman=c(1, 10, 8, 10, (10/10)^2, 40, 1, 1)
 set.seed(12345)
 womanWorkPred=makePredLogReg(woman, postMode, postCov, nDraws)
-hist(womanWorkPred, breaks=100, main="Histogram of the predicted probabilities")
-plot(density(womanWorkPred), main="Density of the predicted probabilities", xlab="Probability", ylab="Density")
+logistic_distrib=c()
+for (i in womanWorkPred) {
+  logistic_distrib=c(logistic_distrib, rbinom(1, 1, i))
+} 
+barplot(table(logistic_distrib), main="Histogram of the predicted probabilities")
 
 ## As seen in the plots the calculated probabilities of the woman in question working is fairly low. The highest
 ## density is seen in the range between 0.2 and 0.3 approximately. This also makes sense if applied to a real
@@ -130,7 +129,7 @@ makePredLogRegMultiple = function(data, mean, sigma, nDraws, n) {
     betaDraw = makePredLogReg(data, mean, sigma, 1)
     multiplePred=c(multiplePred, rbinom(1, n, betaDraw))
   }
-  hist(multiplePred, breaks=100, main=paste("Distribution for prediction made on", n, "women"), 
+  barplot(table(multiplePred), main=paste("Distribution for prediction made on", n, "women"), 
        xlab="No. of women")
 }
 

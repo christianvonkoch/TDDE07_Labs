@@ -50,14 +50,17 @@ for (i in 1:nDraws) {
 }
 
 # The posterior coverage
-plot(posteriorMatrix[,1], posteriorMatrix[,2], xlab="Mu", ylab="Sigma^2")
+plot(posteriorMatrix[1001:nrow(posteriorMatrix),1], posteriorMatrix[1001:nrow(posteriorMatrix),2], xlab="Mu", 
+     ylab="Sigma^2")
 
 ## ii) AnalyzethedailyprecipitationusingyourGibbssamplerin(a)-i. Evaluate the convergence of the Gibbs sampler
 ## by suitable graphical methods, for example by plotting the trajectories of the sampled Markov chains. 
 
-iter=seq(1,nDraws,1)
-plot(iter, posteriorMatrix[,1], type="l", xlab="Iteration", ylab="Mu", main="Marginal posterior for mu")
-plot(iter, posteriorMatrix[,2], type="l", xlab="Iteration", ylab="Sigma", main="Marginal posterior for sigma")
+iter=seq(1001,5000,1)
+plot(iter, posteriorMatrix[1001:nrow(posteriorMatrix),1], type="l", xlab="Iteration", 
+     ylab="Mu", main="Marginal posterior for mu")
+plot(iter, posteriorMatrix[1001:nrow(posteriorMatrix),2], type="l", xlab="Iteration", 
+     ylab="Sigma", main="Marginal posterior for sigma")
 
 ## b) Let us now instead assume that the daily precipitation {y1,...,yn} follow an iid two-component mixture
 ## of normals model: p(yi given mu, sigma^2, pi)=pi*N(yi given my1, sigma1^2)+(1-pi)*N(yi given mu2, sigma2^2)
@@ -132,6 +135,8 @@ xGridMax <- max(xGrid)
 mixDensMean <- rep(0,length(xGrid))
 effIterCount <- 0
 ylim <- c(0,2*max(hist(x)$density))
+param_matrix=matrix(0,4,nIter)
+rownames(param_matrix)=c("Mu1", "Mu2", "Sigma1", "Sigma2")
 
 for (k in 1:nIter){
   message(paste('Iteration number:',k))
@@ -151,6 +156,8 @@ for (k in 1:nIter){
     tau2Post <- 1/precPost
     mu[j] <- rnorm(1, mean = muPost, sd = sqrt(tau2Post))
   }
+  param_matrix[1,k]=mu[1]
+  param_matrix[2,k]=mu[2]
   
   # Update sigma2's
   for (j in 1:nComp){
@@ -158,6 +165,8 @@ for (k in 1:nIter){
                                 scale = (nu0[j]*sigma2_0[j] + 
                                            sum((x[alloc == j] - mu[j])^2))/(nu0[j] + nAlloc[j]))
   }
+  param_matrix[3,k]=sigma2[1]
+  param_matrix[4,k]=sigma2[2]
   
   # Update allocation
   for (i in 1:nObs){
@@ -194,6 +203,10 @@ lines(xGrid, mixDensMean, type = "l", lwd = 2, lty = 4, col = "red")
 lines(xGrid, dnorm(xGrid, mean = mean(x), sd = apply(x,2,sd)), type = "l", lwd = 2, col = "blue")
 legend("topright", box.lty = 1, legend = c("Data histogram","Mixture density","Normal density"), 
        col=c("black","red","blue"), lwd = 2)
+plot(param_matrix[1,200:ncol(param_matrix)], type="l")
+plot(param_matrix[2,200:ncol(param_matrix)], type="l")
+plot(param_matrix[3,200:ncol(param_matrix)], type="l")
+plot(param_matrix[4,200:ncol(param_matrix)], type="l")
 
 ## It seems like the sampler has converged towards a mixture distribution which resembles the histogram of 
 ## the data. The mode of the distribution is approximately at 20*1/100 inches per day. The mixture density

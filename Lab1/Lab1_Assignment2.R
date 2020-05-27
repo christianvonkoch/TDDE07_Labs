@@ -20,13 +20,19 @@ calcThao = function(data, my, n) {
   return(sum((log(data)-my)^2)/n)
 }
 
+invchisquare <- function(x, df, taosq){
+  first = ((taosq*df/2)^(df/2))/gamma(df/2)
+  second = (exp((-df*taosq)/(2*x)))/(x^(1+df/2))
+  return(first*second)
+}
+
 thaosq=calcThao(x, my, n)
 set.seed(12345)
 drawX=rchisq(10000, n)
 sigmasq=(n)*thaosq/drawX
 xvals=seq(0.001, 3, 0.001)
 plot(density(sigmasq), main="Density of simulated sigma^2, black = simulated distrib., red = actual distrib.")
-lines(xvals,dinvchisq(xvals, n, thaosq), col="red")
+lines(xvals,invchisquare(xvals, n, thaosq), col="red")
 
 ## As seen in the plot the theoretical distribution (red line) follows the simulated one with good precision. This
 ## indicates that the simulation has been made correctly.
@@ -59,8 +65,10 @@ abline(v = G_CredInterval[2], col="blue")
 
 GDensity=density(G)
 GDensity.df=data.frame(x=GDensity$x, y=GDensity$y)
-GDensity.df$y=cumsum(GDensity$y)/sum(GDensity$y)
-GDensity_CredInterval_Vals=GDensity.df[GDensity.df$y>0.05 & GDensity.df$y<0.95,]
+GDensity.df=GDensity.df[order(-GDensity.df[,2]),]
+index=dim(GDensity.df)[1]
+GDensity.df$y=cumsum(GDensity.df$y)/sum(GDensity.df$y)
+GDensity_CredInterval_Vals=GDensity.df[GDensity.df$y<0.90,]
 GDensity_CredInterval=c(min(GDensity_CredInterval_Vals$x), max(GDensity_CredInterval_Vals$x))
 print(GDensity_CredInterval)
 abline(v = GDensity_CredInterval[1], col="red")
