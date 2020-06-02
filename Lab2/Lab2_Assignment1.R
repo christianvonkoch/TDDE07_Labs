@@ -132,7 +132,7 @@ for (i in 1:nDraws) {
   time_max_temp=c(time_max_temp, calcMaxTemp(betaMatrix_post, i))
 }
 
-hist(time_max_temp, breaks=1000, xlim=c(0,1), main="Frequency of max temperatures simulated from xtilde",
+hist(time_max_temp, breaks=10, xlim=c(0,1), main="Frequency of max temperatures simulated from xtilde",
      xlab="Temperature")
 
 ## As seen in the histogram the derived highest temperature from the simulated models is mostly present in late

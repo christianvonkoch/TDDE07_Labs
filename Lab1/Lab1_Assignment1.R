@@ -43,10 +43,11 @@ for (i in nVector) {
   stdVector=c(stdVector, calcMSE(i, mean(betaValues), betaValues))
 }
 plot(nVector, meanVector, main="Plot of how the mean converges with respect to number of draws",
-     xlab="Number of draws", ylab="Mean")
+     xlab="Number of draws", ylab="Mean", type="l")
+abline(h=MeanOfPosterior, col="red")
 plot(nVector, stdVector, main="Plot of how the standard deviation converges with respect to the number of draws",
-     xlab="Number of draws", ylab="Standard deviation")
-
+     xlab="Number of draws", ylab="Standard deviation", type="l")
+abline(h=StdOfPosterior, col="red")
 ## As seen in the plot the posterior mean as well as the posterior standard deviation converges towards its true
 ## value of approx 0.29 and 0.09 respectively as the number of randow draws grows large.
 

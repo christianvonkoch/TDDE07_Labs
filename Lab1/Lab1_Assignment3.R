@@ -29,7 +29,7 @@ vonMisesDistrib = function(kappa, data, my){
 
 # Function for computing the exponential distribution
 exponDistrib = function(data, lambda) {
-  return(1/lambda*exp(-1/lambda*data))
+  return(lambda*exp(-lambda*data))
 }
 
 kappa_values=seq(0,10,0.01)
