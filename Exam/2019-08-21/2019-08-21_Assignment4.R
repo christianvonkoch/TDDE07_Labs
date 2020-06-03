@@ -91,7 +91,7 @@ MHSampler = function(previousVal, postCov, c, myFunction, ...) {
 }
 
 post_matrix2 = matrix(0, nIter+burnIn, 2)
-theta_0=c(200,10)
+theta_0=c(200,20)
 post_matrix2[1,]=theta_0
 accProb2=rep(0, nIter)
 set.seed(12345)

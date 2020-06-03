@@ -1182,6 +1182,784 @@ legend("topleft", legend=c("Data", "Posterior mean", "95 % cred intervals"), lwd
 
 ```
 
+#2018-08-22
+
+##Assignment 1
+
+```{r eval=FALSE}
+## a) Plot posterior density of lognormal likelihood and normal prior
+
+sigma2=0.04
+dataLion =lions
+
+posteriorDens = function(data, mu, sigma2, mu0, sigma2_0) {
+  likelihood=sum(dlnorm(data, meanlog=mu, sdlog=sqrt(sigma2), log=TRUE))
+  prior=dnorm(mu, mean=mu0, sd=sqrt(sigma2_0), log=TRUE)
+  return(likelihood+prior)
+}
+
+gridWidth=0.001
+muGrid=seq(5,5.5,gridWidth)
+postMu=exp(sapply(muGrid, posteriorDens, data=dataLion, sigma2=0.04, mu0=5, sigma2_0=1))
+postMu_norm=1/gridWidth*postMu/sum(postMu)
+plot(muGrid, postMu_norm, type="l", lwd=2, main="Posterior density of mu", xlab=expression(mu), ylab="Density")
+
+## b) Now assume that also sigma2 is unknown and that sigma2 ~ scaledinvchisq(v0, sigma2_0) a priori independently
+## from mu, with v0=5 and sigma2_0=0.04. Implement stan-code that produces at least 2000 samples from the posterior
+## of mu and sigma2. Use 500 samples for burnin. Based on samples compute posterior mean and standard deviation
+## of mu and sigma2 and plot the joint posterior of mu and sigma2. 
+
+StanModel= '
+data {
+  int<lower=0> N;
+  vector[N] y;
+}
+
+parameters {
+  real mu;
+  real<lower=0> sigma2;
+}
+model {
+  //Priors
+  mu ~ normal(5,1);
+  sigma2~scaled_inv_chi_square(5,0.2);
+  
+  //Likelihood
+  for (n in 1:N) {
+    y[n]~lognormal(mu, sqrt(sigma2));
+  }
+}
+'
+n=length(dataLion)
+data=list(N=n, y=dataLion)
+fit=stan(model_code=StanModel, data=data, warmup=500, iter=2500, chains=1)
+print(fit)
+post_draws=extract(fit)
+mu_post=post_draws$mu
+sigma2_post=post_draws$sigma2
+mu_postMean=mean(mu_post)
+sigma2_postMean=mean(sigma2_post)
+mu_postMean
+sigma2_postMean
+plot(mu_post, sigma2_post, main="Simulated joint posterior of mu and sigma", xlab=expression(mu),
+     ylab=expression(sigma))
+
+## c) Compute an estimate of the average weight of male lions. Give an estimate and a 95 % credible interval of 
+## the average weight of male lions based on the posterior computed in b. 
+
+estimate=exp(mu_post+1/2*sigma2_post)
+mean(estimate)
+hist(estimate, breaks=100, main="Predicitve distribution of average weight of lions")
+quantile(estimate, probs=c(0.025, 0.975))
+
+## Important here to insert all the draws into the function for the mean and then take the average of that for
+## an estimate. 
+```
+
+##Assignment 2
+
+```{r eval=FALSE}
+## a) Use numeric optimization to approximate joint posterior of beta.
+
+library(mvtnorm)
+
+data=titanic
+y=data$survived
+X=as.matrix(data[,-1])
+
+
+nFeatures = dim(X)[2]
+covNames=names(data[,2:ncol(data)])
+
+# Constructing prior
+tau=50
+mu_prior = rep(0,nFeatures)
+sigma_prior = tau^2*diag(nFeatures) 
+
+logPostLogistic = function(beta, Y, X, mu, sigma) {
+  nFeat = length(beta)
+  XBeta=X%*%beta
+  # Defining loglikelihood
+  logLike = sum(Y*XBeta-log(1+exp(XBeta)))
+  if (abs(logLike) == Inf) logLik = -20000; # Likelihood is not finite, stear the optimizer away from here!
+  # Defining prior
+  prior = dmvnorm(beta, mean=mu, sigma=sigma, log=TRUE)
+  # Adding loglikelihood and logprior together. Since it is log both of them are added instead of multiplied
+  return(logLike + prior)
+}
+
+# Defining initial values to be passed on to the optimizer
+set.seed(12345)
+initVals = rnorm(dim(X)[2])
+
+# Finding the optimized betavector
+optimResult = optim(initVals, logPostLogistic, Y=y, X=X, mu=mu_prior, sigma=sigma_prior, method=c("BFGS"),
+                    control=list(fnscale=-1), hessian=TRUE)
+
+# Defining the values of interest
+postMode = optimResult$par
+postCov = -solve(optimResult$hessian)
+names(postMode) = covNames
+approx_PostStd = sqrt(diag(postCov))
+names(approx_PostStd) = covNames
+print("The posterior mode is:")
+print(postMode)
+print("The approximated standard deviations are:")
+print(approx_PostStd)
+
+par(mfrow=c(2,2))
+for (i in 2:nFeatures) {
+  grid=seq(postMode[i]-3*approx_PostStd[i], postMode[i]+3*approx_PostStd[i], length=1000)
+  plot(grid, dnorm(grid, mean=postMode[i], sd=approx_PostStd[i]), 
+       main=paste("Marginal posterior of", covNames[i]), xlab=covNames[i], ylab="Density", type="l", lwd=2)
+}
+
+## b) Compute posterior probability that the adult feature is smaller than 0
+
+prob=pnorm(0, mean=postMode[which(covNames=="adult")], sd=approx_PostStd[which(covNames=="adult")])
+prob
+
+## The interpretation of the probability 0.76 is that we can say with approximately 76 % posterior probability
+## that being an adult contributed negatively in regards to survival on the titanic. If you were an adult 
+## you were more probable to die than if not.
+
+## c) A first class adult woman and a third class adult man are together during the disaster.
+## Compute predictive probability that the woman survives but the man dies. 
+
+man=c(1,1,1,0,0)
+woman=c(1,1,0,1,0)
+nDraws=5000
+results=matrix(0,nDraws, nFeatures)
+for (i in 1:nDraws) {
+  results[i,]=rmvnorm(1, mean=postMode, sigma=postCov)
+}
+
+manPred=results%*%man
+womanPred=results%*%woman
+manSim=rbinom(nDraws, 1, exp(manPred)/(1+exp(manPred)))
+womanSim=rbinom(nDraws, 1, exp(womanPred)/(1+exp(womanPred)))
+final=ifelse(womanSim == 1 & manSim ==0, 1, 0)
+mean(final)
+
+## Reasonable. Do simulation of param, use that param in new obs likelihood. Check probability.
+```
+
+##Assignment 3
+
+```{r eval=FALSE}
+## c) Do Bayesian model comparison of two models, both geometric likelihood, first with beta prior alpha=0.5, beta=0.5
+##  and second is null model assuming theta=0.5. Prior probabilities are p(M1)=0.1 and p(M2)=9/10
+
+alpha=1/2
+beta=1/2
+data=c(2, 1, 12)
+n=length(data)
+
+# We know that marginal likelihood for data is likelihood*prior/posterior which when derived yields the below function
+
+margLikelihood1=gamma(alpha+beta)*gamma(alpha+n)*gamma(beta+sum(data))/(gamma(alpha)*gamma(beta)*
+                                                                          gamma(beta+sum(data)+alpha+n))
+
+# Since we have a constant prior the marginal likelihood for model 2 will be the likelihood with theta set to the 
+## constant
+
+margLikelihood2=0.5^n*(1-0.5)^sum(data)
+
+prior1=1/10
+prior2=9/10
+
+posterior1=margLikelihood1*prior1
+posterior2=margLikelihood2*prior2
+posterior1_norm=posterior1/sum(c(posterior1, posterior2))
+posterior2_norm=posterior2/sum(c(posterior1, posterior2))
+
+## Model 1 has a higher posterior probability than 1 so this model should be chosen. 
+```
+
+##Assignment 4
+
+```{r eval=FALSE}
+## b) Compute the probability that party A gets a majority of the votes (more than 50 %) in the election. 
+## Assume that everyone in the population is voting. 
+
+# Assuming uniform Dirichlet prior, i.e. Dirichlet(1,1,1)
+nComp=3
+alphaPrior=rep(1,nComp)
+data=c(184, 67, 149)
+alphaPost=alphaPrior+data
+
+simDirich = function(alpha) {
+  nComp=length(alpha)
+  gammavec=rep(0,nComp)
+  for (i in 1:nComp) {
+    x=rgamma(1, alpha[i], 1)
+    gammavec[i]=x
+  }
+  z=gammavec/sum(gammavec)
+  return(z)
+}
+
+nIter=10000
+dirichlet=matrix(0, nIter, nComp)
+for (i in 1:nIter) {
+  dirichlet[i,]=simDirich(alphaPost)
+}
+
+prob=mean(dirichlet[,1]>0.5)
+prob
+
+## 0.039 % that party A gets a majority of the votes
+
+## Calc probability that A becomes largest party
+
+prob2=mean(dirichlet[,1]>dirichlet[,2] & dirichlet[,1]>dirichlet[,3])
+prob2
+
+## 0.971 % chance that party A becomes the biggest party.
+
+## d) Assume that probability in c) was estimated through monte carlo simulation. Compute a 95 % confidence interval
+## for estimated probility in c) with respect to the error from the Monte Carlo simulation. 
+
+# If x modeled as Bin(1,p) where p is the probability obtained from c) and x=1 stands for {A becomes largest party}
+# and x=0 stands for {A doesn't become largest party}. We get that the expected value of the summation of all
+# monte carlo samples divided by the number of samples is p and the variance for same variable is p(1-p)/#Samples
+
+p=prob2
+N=10000
+stdX=p*(1-p)/N
+confInt=c(p-1.96*sqrt(1/N*p*(1-p)), p+1.96*sqrt(1/N*p*(1-p)))
+confInt
+
+## How many additional samples would be needed to reduce the width of the interval by half
+
+# To reduce width by half the difference between upper and lower bound of interval divided by 2 needs to be 
+# reduced by half. This yields: p+1.96*1/sqrt(N)*sqrt(p*(1-p))-(p-1.96*1/sqrt(N)*sqrt(p*(1-p)))/2=
+# 1.96*..., 1.96/2*1/sqrt(N)...=1.96*1/sqrt(N)... So we need to increase N to N~ to obtain the left hand side
+# expression. We get that 1/sqrt(N~)=1/(2*sqrt(N)), N~=4*N
+
+NTilde=4*10000
+diffN=NTilde-N
+diffN
+
+## We need to increase the sample by 30000 to lower the interval by half. 
+```
+
+#2018-11-01
+
+##Assignment 1
+
+```{r eval=FALSE}
+## a) Data is normally distributed, assume non-informative prior. Simulate 1000 draws from the predictive distribution
+## of the maximal weight in a given future week and plot them.
+
+par(mfrow=c(1,1))
+data=c(1690, 1790, 1760, 1750)
+n=length(data)
+sigma2=50^2
+
+# Prior assumed to be constant. This yields posterior distribution of mu~N(mean(data), simga2/n) according to L2
+
+postDistrib=rnorm(1000, mean=mean(data), sd=sqrt(sigma2/n))
+predDistrib=rnorm(1000, mean=postDistrib, sd=sqrt(sigma2))
+hist(predDistrib, breaks=100, main="Approximated predictive distribution of mu", xlab=expression(mu), freq=FALSE)
+
+# To check if reasonable the real predictive distribution is plotted. We know from L4 that the predictive distribution
+# of new obs is distributed N(mean(data), sigma2*(1+1/n))
+
+grid=seq(1500,1900)
+lines(grid, dnorm(grid, mean=mean(data), sd=sqrt(sigma2*(1+1/n))), col="red")
+
+## Since the histogram follows the real distribution well it was performed correctly. 
+
+## b) Use simulation to approximate the expected number of weeks out of the coming 52 weeks in which the maximal 
+## weight will exceed 1850 kg, based on the predictive distribution. 
+
+nDraws=1000
+weekMatrix=matrix(0,52,nDraws)
+for (i in 1:nDraws) {
+  weekMatrix[,i]=rnorm(52, mean=mean(data), sd=sqrt(sigma2*(1+1/n)))
+}
+countWeeks=colSums(weekMatrix>1850)
+barplot(table(countWeeks), main="Approximated predictive distribution", xlab="No. of weeks")
+mean(countWeeks)
+
+## Important here to simulate the number of predictive draws taken, in this case 52 samples. Then sum the no of
+## observations in each sample which satisfies the condition. This then becomes the predictive distribution.
+## We can then take the mean out of this sample to obtain the expected number of weeks. 
+
+## c) The weight that the escalator can hold at any given time is given by 1000log(a), a is the build cost.
+## If the weight is exceeded the excalator breaks and has to be repaired. Loss function for shopping mall is
+## L(a, theta) = a+n(a,theta) where n(a,theta) is the no. of weeks out of the 52 in which the escalator breaks.
+## Compute the optimal build cost (a) using Bayesian approach.
+
+# Want to maximize the negative loss function.
+
+countOfBreak=function(a, countMatrix) {
+  return(colSums(countMatrix>1000*log(a)))
+}
+
+utilityFunction = function(a, n) {
+  return(-(a+n))
+}
+
+aGrid=seq(0,20, 0.001)
+utility=rep(0,length(aGrid))
+for(i in 1:length(aGrid)) {
+  counts=countOfBreak(aGrid[i], weekMatrix)
+  utility[i]=mean(utilityFunction(aGrid[i], counts))
+}
+
+plot(aGrid, utility, type="l", lwd=2, main="Utility function")
+aOpt=aGrid[which(utility==max(utility))]
+points(aOpt, max(utility), col="red", cex=2, lwd=2)
+aOpt
+
+## 6.74 yields maximum utility and equivalently minimum loss.
+```
+
+##Assignment 2
+
+```{r eval=FALSE}
+# Reading the data from file
+load(file = 'fish.RData')
+
+library(mvtnorm)
+
+# Defining a function that simulates from the scaled inverse Chi-square distribution
+rScaledInvChi2 <- function(n, df, scale){
+  return((df*scale)/rchisq(n,df=df))
+}
+
+BayesLinReg <- function(y, X, mu_0, Omega_0, v_0, sigma2_0, nIter){
+  # Direct sampling from a Gaussian linear regression with conjugate prior:
+  #
+  # beta | sigma2 ~ N(mu_0, sigma2*inv(Omega_0))
+  # sigma2 ~ Inv-Chi2(v_0,sigma2_0)
+  # 
+  # Author: Mattias Villani, IDA, Linkoping University. http://mattiasvillani.com
+  #
+  # INPUTS:
+  #   y - n-by-1 vector with response data observations
+  #   X - n-by-nCovs matrix with covariates, first column should be ones if you want an intercept.
+  #   mu_0 - prior mean for beta
+  #   Omega_0  - prior precision matrix for beta
+  #   v_0      - degrees of freedom in the prior for sigma2
+  #   sigma2_0 - location ("best guess") in the prior for sigma2
+  #   nIter - Number of samples from the posterior (iterations)
+  #
+  # OUTPUTS:
+  #   results$betaSample     - Posterior sample of beta.     nIter-by-nCovs matrix
+  #   results$sigma2Sample   - Posterior sample of sigma2.   nIter-by-1 vector
+  
+  # Compute posterior hyperparameters
+  n = length(y) # Number of observations
+  nCovs = dim(X)[2] # Number of covariates
+  XX = t(X)%*%X
+  betaHat <- solve(XX,t(X)%*%y)
+  Omega_n = XX + Omega_0
+  mu_n = solve(Omega_n,XX%*%betaHat+Omega_0%*%mu_0)
+  v_n = v_0 + n
+  sigma2_n = as.numeric((v_0*sigma2_0 + ( t(y)%*%y + t(mu_0)%*%Omega_0%*%mu_0 - t(mu_n)%*%Omega_n%*%mu_n))/v_n)
+  invOmega_n = solve(Omega_n)
+  
+  # The actual sampling
+  sigma2Sample = rep(NA, nIter)
+  betaSample = matrix(NA, nIter, nCovs)
+  for (i in 1:nIter){
+    
+    # Simulate from p(sigma2 | y, X)
+    sigma2 = rScaledInvChi2(n=1, df = v_n, scale = sigma2_n)
+    sigma2Sample[i] = sigma2
+    
+    # Simulate from p(beta | sigma2, y, X)
+    beta_ = rmvnorm(n=1, mean = mu_n, sigma = sigma2*invOmega_n)
+    betaSample[i,] = beta_
+    
+  }
+  return(results = list(sigma2Sample = sigma2Sample, betaSample=betaSample))
+}
+
+data=fish
+y=data[,1]
+X=as.matrix(data[,-1])
+X=cbind(X, subset(X, select=c("age", "temp"))^2)
+X=cbind(X, X[,2]*X[,3])
+covNames=names(data[,-1])
+covNames=append(covNames, c("age^2", "temp^2", "age*temp"))
+mu_0=rep(0, ncol(X))
+omega_0=0.01*diag(ncol(X))
+v_0=1
+sigma2_0=10000
+nIter=5000
+
+bayes_lin_results=BayesLinReg(y, X, mu_0, omega_0, v_0, sigma2_0, nIter)
+
+## a) Compute posterior mean and 95 % equal tail credible intervals for all beta-params
+
+results=matrix(0,ncol(X)+1,3)
+for (i in 1:ncol(X)) {
+  results[i,1]=mean(bayes_lin_results$betaSample[,i])
+  results[i,-1]=quantile(bayes_lin_results$betaSample[,i], probs=c(0.025, 0.975))
+}
+results[ncol(X)+1,1]=mean(bayes_lin_results$sigma2Sample)
+results[ncol(X)+1,-1]=quantile(bayes_lin_results$sigma2Sample, probs=c(0.025, 0.975))
+covNames=append(covNames, "sigma2")
+rownames(results)=covNames
+colnames(results)=c("Posterior mean", "2,5%", "97,5%")
+results
+
+## b) Compute the posterior mean and posterior median of the noise standard deviation theta
+
+median(bayes_lin_results$sigma2Sample)
+results[ncol(X)+1,1]
+
+## Results shown above
+
+## c) First eleven datapoints come from watertank with 25 degrees celsius. Produce scatter plot of these datapoints
+## with length and age on the two axes. Overlay a curve for the posterior mean of the regression curve with respect
+## to age. 
+
+betaMatrix=bayes_lin_results$betaSample
+tempData=data[1:11,]
+plot(tempData$length, tempData$age, main="Plot of data with 25 degrees temperature in tank", xlab="Length",
+     ylab="Age", col="blue")
+ageGrid=seq(0,160, 0.01)
+credInt=matrix(0,length(ageGrid),2)
+fAgePostMean=rep(0,length(ageGrid))
+fAge=rep(0,nIter)
+count=1
+for (a in ageGrid) {
+  fAge=betaMatrix%*%c(1,a,25,a^2, 25^2, a*25)
+  fAgePostMean[count]=mean(fAge)
+  credInt[count,]=quantile(fAge, probs=c(0.025, 0.975))
+  count=count+1
+}
+lines(fAgePostMean, ageGrid, type="l", lwd=2, col="red")
+lines(credInt[,1], ageGrid, col="grey", lty=2)
+lines(credInt[,2], ageGrid, col="grey", lty=2)
+
+## d) Assume that you want to make predictions for fish in a new water tank with a temperature of 15 degrees celsius
+## , which is lower than any of the temperatures in the original data set. Discuss how the current data set
+## might be a problem regarding this matter and how the prior could be changed to control this problem. 
+
+## Since we have a model with high order terms the risk for overfitting is bigger than with a simpler model.
+## When testing the model on data which are far away from the data used to fit the model, it is of high risk
+## that the model might perform badly. To reduce the risk of overfitting one can use a betaprior close to zero
+## to force many of the covariates to become zero. To further reduce the risk for overfitting one can increase the
+## values in the diagonal of omega_0 to larger values to further reduce the variance. This should be done for the 
+## covariates and not for the intercept so the place [1,1] in the omega_0 matrix can remain the same but the other
+## values can be increased. 
+```
+
+##Assignment 4
+
+```{r eval=FALSE}
+## a) Assume following joint prior p(alpha, beta) 1/(alpha*beta)^2
+
+# Reading the data from file
+load(file = 'weibull.RData')
+library(mvtnorm)
+
+data=weibull
+
+logPrior=function(alphaBeta) {
+  return(-2*(log(alphaBeta[1])+log(alphaBeta[2])))
+}
+
+logPosterior = function(alphaBeta, data) {
+  alpha=alphaBeta[1]
+  beta=alphaBeta[2]
+  logPrior=logPrior(alphaBeta)
+  logLike=sum(dweibull(data, alpha, beta, log=TRUE))
+  logPost=logLike+logPrior
+  if (abs(logPost) == Inf || is.na(logPost)) logPost = -20000;
+  return(logPost)
+}
+
+# Defining initial values to be passed on to the optimizer
+set.seed(12345)
+initVals = rnorm(2)
+
+optimResult = optim(initVals, logPosterior, data=data, method=c("L-BFGS-B"),
+                    lower=c(0.0001,0.0001), upper=c(Inf, Inf), control=list(fnscale=-1), hessian=TRUE)
+
+# Defining the values of interest
+postMode = optimResult$par
+postCov = -solve(optimResult$hessian)
+names(postMode) = c("alpha", "beta")
+approx_PostStd = sqrt(diag(postCov))
+names(approx_PostStd) = c("alpha", "beta")
+colnames(postCov) = c("alpha", "beta")
+rownames(postCov) = c("alpha", "beta")
+print("The posterior mode is:")
+print(postMode)
+print("The covariance matrix is:")
+print(postCov)
+
+## b) Simulate from the actual posterior using the metropolis algorithm. Denote theta=t(alpha,beta) and use
+## proposal density the multivariate normal density (random walk metropolis). Use alpha=1 and beta=1 as starting
+## values, 500 iterations burnin and thereafter 2000 samples from the posterior. Run the algorithm for c: 0.1,
+## 4 and 100 and use the draws from the best choice of c. Motivate your choice. Compute posterior mean and variance
+## for the two params based on your samples. Proposal distrib can be truncated to avoid proposals below zero.
+
+nIter=2000
+burnIn=500
+alphaGamma=c(1,1)
+c=c(0.1, 4, 100)
+
+# Defining function for sampling through metropolishastings
+RVMSampler = function(previousVal, postCov, c, myFunction, ...) {
+  proposalVal=rmvnorm(1, mean=previousVal, sigma=c*postCov)
+  proposalVal[proposalVal<=0]=1e-6
+  alpha=min(1, exp(myFunction(proposalVal,...)-myFunction(previousVal, ...)))
+  u=runif(1)
+  if(u < alpha) {
+    return(list(theta=proposalVal, acceptProb=alpha))
+  } else {
+    return(list(theta=previousVal, acceptProb=alpha))
+  }
+}
+
+post_matrix = matrix(0, nIter+burnIn, 2*length(c))
+colnames=c()
+for (i in 1:length(c)) {
+  colnames=c(colnames, c(paste("Alpha with c=", c[i], sep=""), paste("Beta with c=", c[i], sep="")))
+}
+# Setting initial values of beta to same initVals as in the optimizer (taken randomly from normal distrib)
+post_matrix[1,]=alphaGamma
+accProb=matrix(0, nIter+burnIn, length(c))
+colnames(accProb)=c("c=0.1", "c=4", "c=100")
+set.seed(12345)
+
+for (j in 1:length(c)) {
+  for(i in 1:(nIter+burnIn)) {
+    if(i<(nIter+burnIn)) {
+      draw=RVMSampler(post_matrix[i,(2*j-1):(2*j)], postCov, c[j], logPosterior, data)
+      post_matrix[i+1,(2*j-1):(2*j)]=draw$theta
+      accProb[i+1,j]=draw$acceptProb
+    }
+  }
+}
+accProb_final=accProb[-(1:burnIn),]
+accProb_mean=colMeans(accProb)
+accProb_mean
+colnames(post_matrix)=colnames
+
+## Should choose c=4 since it yields an acceptance probability of around 0.3 which is a preferable value when
+## applying metropolis hastings algorithm. 
+
+post_matrix_final=post_matrix[-(1:burnIn), 3:4]
+rownames=seq(501,2500)
+rownames(post_matrix_final)=rownames
+postMean_alpha=mean(post_matrix_final[,1])
+postMean_beta=mean(post_matrix_final[,2])
+postVar_alpha=var(post_matrix_final[,1])
+postVar_beta=var(post_matrix_final[,2])
+postMean_alpha
+postMean_beta
+postVar_alpha
+postVar_beta
+```
+
+#2019-06-04
+
+##Assignment 1
+
+```{r eval=FALSE}
+## Bayesian data analysis before an upcoming election. According to model, the posterior of the vote share theta
+## that the party will get in the election is Beta(sqrt(c), 20) distributed, where c is the amount (in million SEK)
+## that the party spends on the compaign. 
+## a) Sample 10000 draws from posterior of thetafor the cases when c=4 and c=16. Based on the samples, plot the 
+## posterior of theta for both cases.
+
+postTheta_4=rbeta(10000, sqrt(4), 20)
+postTheta_16=rbeta(10000, 4, 20)
+hist(postTheta_4, breaks=50, main="Approximated posterior of theta", sub="c=4", xlab=expression(theta), freq=FALSE)
+hist(postTheta_16, breaks=50, main="Approximated posterior of theta", sub="c=16", xlab=expression(theta), freq=FALSE)
+
+## Compute probability that party gets at least 10 % of the votes for both cases. 
+
+prob_4=sum(postTheta_4>0.1)/10000
+prob_16=sum(postTheta_16>0.1)/10000
+prob_4
+prob_16
+
+## To evaluate election results, utility function u(theta, c)=100+20log(theta)-c is used. How much money should
+## they spend on the campaign? Do at least 10000 draws. Assume that maximum campaign budget is 20 million SEK.
+## Consider values of c on the grid seq(4,20,0.5)
+
+cGrid=seq(4,20,0.5)
+postC=matrix(0,10000,length(cGrid))
+set.seed(12345)
+utility = function(c) {
+  thetaDraws=rbeta(10000, sqrt(c), 20)
+  return(100+20*log(thetaDraws)-c)
+}
+# Since quadratic loss function, choose posterior mean
+postMean=rep(0,length(cGrid))
+for(i in 1:length(cGrid)) {
+  postC[,i]=utility(cGrid[i])
+  postMean[i]=mean(postC[,i])
+}
+
+plot(cGrid, postMean, main="Posterior mean of expected utility", xlab="c", ylab="Utility", type="l", lwd=2)
+optC=cGrid[which(postMean==max(postMean))]
+abline(v=optC, col="blue", lwd=1, lty=2)
+legend("topright", legend=c("Utility function", "Optimal c"), col=c("black", "blue"), lty=c(1,2), lwd=c(2,1))
+optC
+
+## Optimal decision is to invest 10.5 million SEK into the campaign
+```
+
+
+##Assignment 2
+
+```{r eval=FALSE}
+## Using dataset ebay. Data describing the number of bids of 100 ebay auctions. 
+## a) Assume bimodial model with N=50. Use prior (theta-1)^2.
+## Write function in R that computes (unnormalized) log posterior density function of theta. Use function to 
+## plot normalized posterior density function of theta on the interval [0,1] with at least 1000 grid points. 
+## Report the (approximate) value of the posterior mode based on the computed values needed for the plot.
+
+N=50
+n=100
+data=ebay
+
+logPrior = function(theta) {
+  return(log((theta-1)^2))
+}
+
+# The likelihood is proportional to the Beta(sum(data)+1, Nn-sum(data)+1) density
+logLike = function(data, theta, N=50) {
+  return(dbeta(theta, sum(data)+1, N*length(data)-sum(data)+1, log=TRUE))
+}
+
+logPost = function(data, theta, N=50) {
+  log_Prior=logPrior(theta)
+  log_Like=logLike(data, theta, N)
+  return(log_Prior+log_Like)
+}
+
+thetaGrid=seq(0,1,0.001)
+post_theta=exp(sapply(thetaGrid, logPost, data=data, N=50))
+post_theta_norm=1/0.001*post_theta/sum(post_theta)
+plot(thetaGrid, post_theta_norm, type="l", lwd=2, main="Approximated posterior density of theta", 
+     xlab=expression(theta), ylab="Density")
+postMode=thetaGrid[which(post_theta_norm==max(post_theta_norm))]
+print(postMode)     
+abline(v=postMode, col="red", lty=2)
+title(sub="Black = Density, Red = Posterior mode")
+
+## b) Use supplied function GibbsMixPoisin file ExamData to do Gibbs sampling for a mixture of Poissons model
+## where each data pointis modeled as independent with density given.
+
+set.seed(100)
+K=2
+nIter=500
+xGrid=seq(min(data), max(data))
+results=GibbsMixPois(ebay, K, alpha=1, alphaGamma=1, betaGamma=1, xGrid=xGrid, nIter)
+post_theta=results$thetaSample
+cum_mean=matrix(0,nIter,2)
+theta1_cumsum=cumsum(post_theta[,1])
+theta2_cumsum=cumsum(post_theta[,2])
+for (i in 1:nIter) {
+  cum_mean[i,]=c(theta1_cumsum[i]/i, theta2_cumsum[i]/i)
+}
+par(mfrow=c(2,1))
+plot(seq(1,500), post_theta[,1], xlab="No. of bids", ylab=expression(theta), main="Trace plot", type="l")
+title(line=3, main="Convergence of sampler for theta1")
+plot(seq(1,500), cum_mean[,1], xlab="No. of bids", ylab="Cumulative mean", type="l", main="Cumulative means")
+plot(seq(1,500), post_theta[,2], xlab="No. of bids", ylab=expression(theta), main="Trajectory over theta2", type="l")
+title(line=3, main="Convergence of sampler for theta2")
+plot(seq(1,500), cum_mean[,2], xlab="No. of bids", ylab="Cumulative mean", type="l", main="Cumulative means")
+
+## According to plots we should choose burnin = 50 approximately. 
+
+## c) Use graphical methods to investigate if mixture of Poissons with K=2 fits data well.
+
+data_norm=as.vector(bidsCounts/sum(bidsCounts))
+postMean=results$mixDensMean
+par(mfrow=c(1,1))
+plot(xGrid, data_norm, xlab="No. of bids", ylab="Density", main="Fitted models", type="o", lwd=2, ylim=c(0,0.3))
+lines(xGrid, postMean, col="red", lwd=1, type="o", lty=2)
+lines(xGrid, dbinom(xGrid, 50, postMode), col="blue", lwd=1, type="o", lty=2)
+legend("topright", col=c("black", "red", "blue"), 
+       legend=c("Data", "Posterior mean of mixture model", "Binomial model"), 
+       lty=c(1,2,2), lwd=c(2,1,1), pch=c("o", "o", "o"))
+
+## I would recommend mixture of poissons since it fits data better. The binomial model is clearly worse 
+## specifically when we look at the number of 0 bids which is higher in the data.
+```
+
+##Assignment 4
+
+```{r eval=FALSE}
+## a) Exp model with Gamma prior. Which prior is more informative, Gamma(2,1) or Gamma(10,10)?
+
+thetaGrid=seq(0,20,0.01)
+par(mfrow=c(2,1))
+plot(thetaGrid, dgamma(thetaGrid, 2, 1), type="l", lwd=2, main="Prior distrib of Gamma(2,1)", xlab=expression(theta),
+     ylab="Density")
+plot(thetaGrid, dgamma(thetaGrid, 10, 10), type="l", lwd=2, main="Prior distrib of Gamma(10,10)", xlab=expression(theta),
+     ylab="Density")
+par(mfrow=c(1,1))
+
+## As seen in the graph the prior for theta in the plot below is more informative since it has a tighter peak than
+## the graph above it. This means that it is more probable that theta is a specific value whereas in the above plot
+## the probability is more spread over a larger interval of possible theta values. 
+
+## b) Compute marginal likelihood for the two models. 
+
+data=cellphones
+
+margLikelihood = function(data, alpha, beta) {
+  n=length(data)
+  nominator=beta^alpha*gamma(alpha+n)
+  denominator=gamma(alpha)*(beta+sum(data))^(alpha+n)
+  return(nominator/denominator)
+}
+
+margLike1=margLikelihood(data, 2, 1)
+margLike2=margLikelihood(data, 10, 10)
+postModel1=margLike1*0.5
+postModel2=margLike2*0.5
+postModel1_norm=postModel1/sum(c(postModel1, postModel2))
+postModel2_norm=postModel2/sum(c(postModel1, postModel2))
+
+## Model 1 is more probable and should be chosen!
+
+## c) Compute 90 % posterior predictive interval of x~ given the cellphones dataset. 
+
+predLikelihood = function(data, alpha, beta, xTilde) {
+  n=length(data)
+  nominator=(beta+sum(data))^(alpha+n)
+  denominator=(beta+xTilde+sum(data))^(alpha+n+1)
+  return(nominator*(alpha+n)/denominator)
+}
+
+xTilde=seq(0,20, 0.01)
+xTilde1=sapply(xTilde, predLikelihood, data=data, alpha=2, beta=1)
+xTilde2=sapply(xTilde, predLikelihood, data=data, alpha=10, beta=10)
+post_xTilde=postModel1_norm*xTilde1+postModel2_norm*xTilde2  
+
+ndraws = 1000000
+xTildeDraws = rep(0,ndraws)
+for(i in 1:ndraws){
+  M = rbinom(1,1,postModel2_norm) + 1 # Simulate which model to use
+  if(M==1){
+    theta = rgamma(1,shape=2+length(x),rate=1+sum(x))
+  } else {
+    theta = rgamma(1,shape=10+length(x),rate=10+sum(x))
+  }
+  xTildeDraws[i] = rexp(1,theta)
+}
+
+print(quantile(xTildeDraws,probs = c(.05,.95)))
+hist(xTildeDraws, freq=FALSE, breaks=1000)
+lines(xTilde, post_xTilde, type="l", lwd=2, col="red")
+plot(xTilde, post_xTilde, type="l", lwd=2)
+```
+
 #2019-08-21
 
 ##Assignment 1

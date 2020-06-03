@@ -2,6 +2,7 @@
 
 sigma2=0.04
 dataLion =lions
+library(rstan)
 
 posteriorDens = function(data, mu, sigma2, mu0, sigma2_0) {
   likelihood=sum(dlnorm(data, meanlog=mu, sdlog=sqrt(sigma2), log=TRUE))
@@ -57,6 +58,8 @@ plot(mu_post, sigma2_post, main="Simulated joint posterior of mu and sigma", xla
 
 ## c) Compute an estimate of the average weight of male lions. Give an estimate and a 95 % credible interval of 
 ## the average weight of male lions based on the posterior computed in b. 
+
+
 
 estimate=exp(mu_post+1/2*sigma2_post)
 mean(estimate)
