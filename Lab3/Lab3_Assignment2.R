@@ -17,7 +17,7 @@ model = glm(nBids~., family="poisson", data=data)
 print(model$coefficients)
 summary(model)
 
-## The covariates that are significant are VerifyID, Sealed, MajBlem, LogBook, MinBidShare.
+## Conclusion: The covariates that are significant are VerifyID, Sealed, MajBlem, LogBook, MinBidShare.
 
 ## b) Let's now do a Bayesian analysis of the Poisson regression. Let the prior be Beta~N(0,100*(XTX)^(-1)) where X
 ## is the n x p covariate matrix. This is a commonly used prior which is called Zellner's g-prior. Assume first that
@@ -67,7 +67,7 @@ print(postMode)
 print("The approximated standard deviations are:")
 print(approx_PostStd)
 
-## Through optimization we have obtained the optimal betavector as well as the hessian evaluated at the posterior
+## Conclusion: Through optimization we have obtained the optimal betavector as well as the hessian evaluated at the posterior
 ## mode. 
 
 ## c) Now, let's simulate from the actual posterior of beta using the Metropolis algorithm and compare with the
@@ -83,7 +83,7 @@ print(approx_PostStd)
 ## new Metropolis function to sample from the posterior of beta in the Poisson regression for the eBay dataset. 
 ## Assess MCMC convergence by graphical methods. 
 
-# Defining function for sampling through metropolishastings
+# Defining function for sampling through metropolis hastings
 RVMSampler = function(previousVal, postCov, c, myFunction, ...) {
   proposalVal=rmvnorm(1, mean=previousVal, sigma=c*postCov)
   alpha=min(1, exp(myFunction(proposalVal,...)-myFunction(previousVal, ...)))
@@ -102,6 +102,7 @@ beta_matrix[1,]=initVals
 c=0.5
 set.seed(12345)
 
+# Performing metropolis hastings
 for(i in 1:nDraws) {
   if(i<nDraws) {
     beta_matrix[i+1,]=RVMSampler(beta_matrix[i,], postCov, c, logPostPoisson, Y, X, mu_prior, sigma_prior)
@@ -119,7 +120,7 @@ par(mfrow=c(1,1), new=FALSE)
 # Calculating distinct rows and dividing by total rows to get average acceptance probability
 avg_alpha=dim(beta_matrix[!duplicated(beta_matrix),])[1]/dim(beta_matrix)[1]
 
-## As seen in the convergence plots the covariates oscillate around the same value which was found in the previous
+## Conclusion: As seen in the convergence plots the covariates oscillate around the same value which was found in the previous
 ## problem where the optimal beta values were found through optimization. Since the variable c should be chosen 
 ## in a way to acquire an average acceptance rate of approximately 25-30%, the average acceptance rate were 
 ## calculated to approximately 33 % which is deemed to be sufficiently satisfying. 
@@ -140,7 +141,7 @@ barplot(table(pred_distrib_bidder),
 prob_noBidders=sum(pred_distrib_bidder==0)/length(pred_distrib_bidder)
 print(prob_noBidders)
 
-## As seen in the predictive distribution the majority of cases given the specified characteristics, will result in
+## Conclusion: As seen in the predictive distribution the majority of cases given the specified characteristics, will result in
 ## either 0 or 1 bidder with the probability decreasing for additional bidders. The calculated probability for
 ## no bidder is 0.3581.
 

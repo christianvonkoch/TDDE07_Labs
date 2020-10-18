@@ -7,6 +7,7 @@
 ## effect does the value of phi have on x1:t
 
 #install.packages("rstan")
+# Setting up values
 mu=10
 sigma_sq=2
 T=200
@@ -17,6 +18,7 @@ results_matrix[1,]=x_init
 counter=1
 set.seed(12345)
 
+# Defining function for the AR process
 AR_process_function=function(mu, sigma_sq, T, phi) {
   x_init=mu
   result=rep(0,T)
@@ -30,6 +32,7 @@ AR_process_function=function(mu, sigma_sq, T, phi) {
 
 results_matrix=matrix(0,T,length(phi_vector))
 counter=1
+# Exploring the AR process with different values of phi
 for (phi in phi_vector) {
   results_matrix[,counter]=AR_process_function(mu,sigma_sq,T,phi)
   counter=counter+1
@@ -45,7 +48,7 @@ for (i in 1:length(phi_vector)) {
   counter=counter+1
 }
 
-## With phi-values below zero the process will oscillate faster but with phi-values above zero the process will
+## Conclusion: With phi-values below zero the process will oscillate faster but with phi-values above zero the process will
 ## be more correlated. The correlation between the different iterations increases as the phi-value becomes larger. 
 ## This causes the oscillation to slow down and the process to move more slowly. 
 
@@ -68,6 +71,7 @@ x=AR_process_function(mu, sigma_sq, T, 0.3)
 set.seed(12345)
 y=AR_process_function(mu, sigma_sq, T, 0.95)
 
+# Defining Stan model
 StanModel= '
 data {
   int<lower=0> N;
@@ -100,7 +104,7 @@ plot(postDraws_x$mu[1000:2000], postDraws_x$phi[1000:2000],ylab="phi", xlab="mu"
 # Do traceplots of the first chain
 plot(postDraws_y$mu[1000:2000],postDraws_y$phi[1000:2000],ylab="mu", xlab="mu",main="Traceplot")
 
-## The posterior mean, number of effective samples as well as 95 % credible interval are shown above for both of the
+## Conclusion: The posterior mean, number of effective samples as well as 95 % credible interval are shown above for both of the
 ## simulated AR(1)-processes. It is possible to estimate the true values of the parameters for the sample which
 ## used a phi=0.3 when obtaining the dataset used in the simulation. However, it is not as obvious to estimate 
 ## the parameters' true values for the second sample where phi=0.95 were used to obtain the dataset used in this
@@ -108,7 +112,7 @@ plot(postDraws_y$mu[1000:2000],postDraws_y$phi[1000:2000],ylab="mu", xlab="mu",m
 ## difficult to predict with certainty the true vale of the parameter. This might be due to the higher correlation
 ## between the lags caused by the higher value of phi. 
 
-## The convergence of the samplers are different. For the first sample which used phi=0.3, the convergence is
+## Conclusion: The convergence of the samplers are different. For the first sample which used phi=0.3, the convergence is
 ## evident whilst for the second sample the posterior distribution is not obvious. This correlates with the fact
 ## the credible intervals for the parameters on the second sample were very wide. What we can see from the 
 ## posterior distribution obtained by the second sampler is that for lower values of phi the distribution centers
@@ -128,6 +132,7 @@ plot(postDraws_y$mu[1000:2000],postDraws_y$phi[1000:2000],ylab="mu", xlab="mu",m
 campy=read.table("campy.dat", header=TRUE)
 library(rstan)
 
+# Defining stan model
 StanModel_Pois = '
 data {
   int<lower=0> T;
@@ -169,7 +174,9 @@ post_mean=pois_mean_list[grep("post_mean", rownames(pois_mean_list)),]
 plot(campy$c, col="blue", ylab="No. of infected", xlab="Time")
 points(post_mean[,1], col="black", type="l")
 
+# Obtaining the quantiles
 quantiles=fit_pois@.MISC$summary$quan
+# Obtaining the quntiles for the post_mean variable
 quantiles_post_mean=quantiles[grep("post_mean", rownames(quantiles)),]
 cred_interval_post_mean=matrix(0,dim(quantiles_post_mean)[1], 2)
 cred_interval_post_mean[,1]=quantiles_post_mean[,1]
@@ -181,7 +188,7 @@ title(main="Plot of data vs approximated posterior")
 legend("topleft", box.lty= 1, pch=c(1,NaN,NaN), legend=c("Data", "Posterior mean", "95 % cred. interval"),
        col=c("blue", "black", "gray"), lwd=c(NaN,1,1), lty=c(NaN, 1, 1))
 
-## As seen in the plot above the posterior mean follows the data accurately. Almost all of the datapoints are
+## Conclusion: As seen in the plot above the posterior mean follows the data accurately. Almost all of the datapoints are
 ## inside the credible intervals which aren't that wide which indicates that the approximated posterior
 ## resembles the reality shown by the data well. 
 
@@ -190,6 +197,7 @@ legend("topleft", box.lty= 1, pch=c(1,NaN,NaN), legend=c("Data", "Posterior mean
 ## increments epsilon_t should be small. Re-estimate the model using Stan with the new prior and produce the same
 ## plot as in c). Has the posterior for theta_t changed?
 
+# Defining Stan Model
 StanModel_Pois_Prior = '
 data {
   int<lower=0> T;
@@ -230,7 +238,9 @@ post_mean_prior=pois_mean_list_prior[grep("post_mean", rownames(pois_mean_list))
 plot(campy$c, col="blue", ylab="No. of infected", xlab="Time")
 points(post_mean_prior[,1], col="black", type="l")
 
+# Obtaining the quantiles
 quantiles_prior=fit_pois_prior@.MISC$summary$quan
+# Obtaining the quntiles for the post_mean variable
 quantiles_post_mean_prior=quantiles_prior[grep("post_mean", rownames(quantiles)),]
 cred_interval_post_mean_prior=matrix(0,dim(quantiles_post_mean)[1], 2)
 cred_interval_post_mean_prior[,1]=quantiles_post_mean_prior[,1]
@@ -242,7 +252,7 @@ title(main="Plot of data vs approximated posterior")
 legend("topleft", box.lty= 1, pch=c(1,NaN,NaN), legend=c("Data", "Posterior mean", "95 % cred. interval"),
        col=c("blue", "black", "gray"), lwd=c(NaN,1,1), lty=c(NaN, 1, 1))
 
-## Now when we have specified a small prior for sigma it is noteable in the new plot that the posterior mean
+## Conclusion: Now when we have specified a small prior for sigma it is noteable in the new plot that the posterior mean
 ## varies less and moves more smoothly. The consequence of this is that more datapoints lie outside of the 
 ## credible interval which suggests that the approximated posterior does not resemble the reality described by
 ## the data as accurately as before. However, by doing this one can avoid overfitting when the model is applied

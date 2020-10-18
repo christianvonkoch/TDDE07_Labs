@@ -54,7 +54,7 @@ for (i in 1:nDraws) {
 }
 title(main="Temps depending on different times for different simulated models", xlab="Time", ylab="Temp")
 
-## The collection of curves look reasonable and in line with our prior beliefs. The temperature rises during the
+## Conclusion: The collection of curves look reasonable and in line with our prior beliefs. The temperature rises during the
 ## summer months and stays low in the beginning and the end of the year respectively.However, the value of -10
 ## were switched to 0 since it seems more reasonable with a measurement of the temperature 0 on the 1st of
 ## January than a measurement of -10.
@@ -112,7 +112,7 @@ lines(temp$time, credInterval[,1], lty=21, col="gray")
 lines(temp$time, credInterval[,2], lty=21, col="gray")
 title(sub="Grey = 95 % credible intervals, Black = Median")
 
-## The interval bands contain most of the data points. They should contain most of the data points if the model
+## Conclusion: The interval bands contain most of the data points. They should contain most of the data points if the model
 ## is accurate in terms of describing the reality. In this case, it seems like the model has captured most of
 ## the data points which means that the model describes the reality fairly well. 
 
@@ -135,7 +135,7 @@ for (i in 1:nDraws) {
 hist(time_max_temp, breaks=10, xlim=c(0,1), main="Frequency of max temperatures simulated from xtilde",
      xlab="Temperature")
 
-## As seen in the histogram the derived highest temperature from the simulated models is mostly present in late
+## Conclusion: As seen in the histogram the derived highest temperature from the simulated models is mostly present in late
 ## june which seems reasonable if applying to Malmslatt in Sweden where the temperature is the highest during the 
 ## summer time. 
 
@@ -144,7 +144,7 @@ hist(time_max_temp, breaks=10, xlim=c(0,1), main="Frequency of max temperatures 
 ## problem. You do not need to compute the posterior, just write down your prior. [Hint: the task is to specify
 ## my0 and omega0 in a smart way.]
 
-## A suitable prior for this task would be to set my0 to 0 since you want most of the coefficients close to zero
+## Conclusion: A suitable prior for this task would be to set my0 to 0 since you want most of the coefficients close to zero
 ## to obtain increased shrinkage. You would also want to set omega0 to Lambda*IdentityMatrix. This would mean
 ## that for larger values of lambda more and more of the beta values would be close to zero since the spread of
 ## the distribution of the beta values would decrease. In this case, where there is a worry about overfitting,

@@ -34,7 +34,6 @@ mu_prior = rep(0,nFeatures)
 sigma_prior = tau^2*diag(nFeatures) 
 
 # Defining function for returning the log posterior
-
 logPostLogistic = function(beta, Y, X, mu, sigma) {
   nFeat = length(beta)
   XBeta=X%*%beta
@@ -78,7 +77,7 @@ glmModel = glm(Work ~ 0+., data=WomenWork, family=binomial)
 print(glmModel$coefficients)
 print(postMode)
 
-## Since the values for the credible interval for NSmallChild are quite large in the negative direction it is
+## Conclusion: Since the values for the credible interval for NSmallChild are quite large in the negative direction it is
 ## reasonable to conclude that the feature NSmallChild affects the response variable farily much towards the 
 ## response 0 which means that the woman doesn't work. This seems like a reasonable conclusion in terms of how
 ## it is in reality as well. When checking if the results are reasonable, a comparison was made with an 
@@ -91,10 +90,19 @@ print(postMode)
 ## of education, 10 years of experience. and a husband with an income of 10. [Hints: The R package mvtnorm will
 ## again be handy. Remember my discussion on how Bayesian prediction can be done by simulation.]
 
+# Sigmoid function. Inputs a value and outputs the corresponding sigmoid function output
 sigmoid = function(value) {
   return (exp(value)/(1+exp(value)))
 }
 
+# Function for making a linear logistic regression prediction for some data
+# Inputs: 
+# data - The data used for the prediction
+# mean - The desired mean of the multivariate normal distribution
+# sigma - The desired covariance matrix for the multivariate normal distribution
+# nDraws - The number of desired draws to be drawn from the normal distribution
+# Outputs:
+# logPred - The logistic regression prediction
 makePredLogReg = function(data, mean, sigma, nDraws) {
   betaPred = rmvnorm(nDraws, mean=mean, sigma=sigma)
   linearPred = betaPred %*% data
@@ -112,7 +120,7 @@ for (i in womanWorkPred) {
 } 
 barplot(table(logistic_distrib), main="Histogram of the predicted probabilities")
 
-## As seen in the plots the calculated probabilities of the woman in question working is fairly low. The highest
+## Conclusion: As seen in the plots the calculated probabilities of the woman in question working is fairly low. The highest
 ## density is seen in the range between 0.2 and 0.3 approximately. This also makes sense if applied to a real
 ## situation. A woman with a small child is likely to stay at home with the child, i.e. not working. If the 
 ## classification of the response variable results in "working" if the predicted probabilities is above 0.5 and
@@ -123,6 +131,14 @@ barplot(table(logistic_distrib), main="Histogram of the predicted probabilities"
 ## plot the predictive distribution for the number of women, out of these 10, that are working.
 ## [Hint: Which distribution can be described as a sum of Bernoulli random variables?]
 
+# Function for making multiple linear logistic regression predictions for some data and then plotting this distribution
+# Inputs: 
+# data - The data used for the prediction
+# mean - The desired mean of the multivariate normal distribution
+# sigma - The desired covariance matrix for the multivariate normal distribution
+# nDraws - The number of desired draws to be drawn from the normal distribution
+# n - The number of draws to be made from the binomial distribution
+# Outputs:
 makePredLogRegMultiple = function(data, mean, sigma, nDraws, n) {
   multiplePred=c()
   for (i in 1:nDraws) {
@@ -135,7 +151,7 @@ makePredLogRegMultiple = function(data, mean, sigma, nDraws, n) {
 
 makePredLogRegMultiple(woman, postMode, postCov, 10000, 10)
 
-## As seen in the histogram the binomial case resembles the density of predicted probabilities with the
+## Conclusion: As seen in the histogram the binomial case resembles the density of predicted probabilities with the
 ## highest density found at 2 women. This result seems reasonable since when the number of draws taken from 
 ## the binomial distribution goes towards infinity the shape of the corresponding distribution will resemble
 ## the shape of the distribution for the probability p in the Bernoulli case, more and more. 

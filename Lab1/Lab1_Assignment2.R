@@ -20,6 +20,7 @@ calcThao = function(data, my, n) {
   return(sum((log(data)-my)^2)/n)
 }
 
+# Function for calculating the theoretical inverse chi square distribution
 invchisquare <- function(x, df, taosq){
   first = ((taosq*df/2)^(df/2))/gamma(df/2)
   second = (exp((-df*taosq)/(2*x)))/(x^(1+df/2))
@@ -34,7 +35,7 @@ xvals=seq(0.001, 3, 0.001)
 plot(density(sigmasq), main="Density of simulated sigma^2, black = simulated distrib., red = actual distrib.")
 lines(xvals,invchisquare(xvals, n, thaosq), col="red")
 
-## As seen in the plot the theoretical distribution (red line) follows the simulated one with good precision. This
+## Conclusion: As seen in the plot the theoretical distribution (red line) follows the simulated one with good precision. This
 ## indicates that the simulation has been made correctly.
 
 ## b) The most common measure of income inequality is the Gini coefficient, G, where 0<=G<=1. G=0 means a 
@@ -47,7 +48,7 @@ G=2*pnorm(sqrt(sigmasq/2), mean=0, sd=1)-1
 hist(G, breaks=100)
 plot(density(G), main="Density function of simulated values of the Gini coefficient")
 
-## As seen in the plot the gini coefficient is centered at around 0.2 which means a rather inequal distribution.
+## Conclusion: As seen in the plot the gini coefficient is centered at around 0.2 which means a rather inequal distribution.
 
 ## c) Use the posterior draws from b) to compute a 90% equal tail credible interval for G. A 90% equal tail interval
 ## (a,b) cuts off 5% percent of the posterior probability mass to the left of a, and 5% to the right of b. Also, 
@@ -67,6 +68,7 @@ GDensity=density(G)
 GDensity.df=data.frame(x=GDensity$x, y=GDensity$y)
 GDensity.df=GDensity.df[order(-GDensity.df[,2]),]
 index=dim(GDensity.df)[1]
+# Calculating cumulative sum to be able to do form an HPD interval for G
 GDensity.df$y=cumsum(GDensity.df$y)/sum(GDensity.df$y)
 GDensity_CredInterval_Vals=GDensity.df[GDensity.df$y<0.90,]
 GDensity_CredInterval=c(min(GDensity_CredInterval_Vals$x), max(GDensity_CredInterval_Vals$x))
@@ -75,6 +77,6 @@ abline(v = GDensity_CredInterval[1], col="red")
 abline(v = GDensity_CredInterval[2], col="red")
 title(sub="Blue = Simulated credible interval, Red = Kernel estimated credible interval")
 
-## As seen in the plot the credible intervals are quite similar with small deviations. 
+## Conclusion: As seen in the plot the credible intervals are quite similar with small deviations. 
 
 

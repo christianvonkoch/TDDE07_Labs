@@ -49,7 +49,7 @@ final_sum=sum(posterior.df$likelihood)
 plot(kappa_values, posterior.df$likelihood, xlab="Kappa", ylab="Likelihood",
      main="Posterior likelihood for different kappavalues", type="l", col="blue")
 
-## As seen in the plot the likelihood of the posterior peaks between 2 and 4 and then dies off for larger
+## Conclusion: As seen in the plot the likelihood of the posterior peaks between 2 and 4 and then dies off for larger
 ## kappa-values.
 
 ## b) Find the (approximate) posterior mode of k from the information in a).
@@ -60,4 +60,4 @@ plot(kappa_values, posterior.df$likelihood, xlab="Kappa", ylab="Likelihood",
 posteriorMode=subset(posterior.df, likelihood==max(likelihood), kappa)
 print(posteriorMode$kappa)
 
-## The approximated posterior mode is found to be 2.12.
+## Conclusion: The approximated posterior mode is found to be 2.12.

@@ -29,17 +29,20 @@ calcTaoN = function(sigmasq,tao0sq,n){
   return(1/(n/sigmasq+1/tao0sq))
 }
 
+# Function for calculating mu_n
 calcMuN = function(sigmasq, tao0sq, mu0, mean, n) {
   w=(n/sigmasq)/(n/sigmasq+1/tao0sq)
   return(w*mean+(1-w)*mu0)
 }
 
+# Function for calculating sigma
 calcSigmaHat = function(v0, sigma0sq, data, mu, n) {
   return((v0*sigma0sq+sum((data-mu)^2))/(n+v0))
 }
 posteriorMatrix = matrix(0, nDraws, 2)
 # Setting initial value of sigma^2 to 1
 posteriorMatrix[1,2]=1
+# Performing Gibbs Sampling
 for (i in 1:nDraws) {
   posteriorMatrix[i,1] = rnorm(1, calcMuN(posteriorMatrix[i,2],tao0sq, mu0, mean_rainfall, n),
                                calcTaoN(posteriorMatrix[i,2], tao0sq, n))
@@ -53,7 +56,7 @@ for (i in 1:nDraws) {
 plot(posteriorMatrix[1001:nrow(posteriorMatrix),1], posteriorMatrix[1001:nrow(posteriorMatrix),2], xlab="Mu", 
      ylab="Sigma^2")
 
-## ii) AnalyzethedailyprecipitationusingyourGibbssamplerin(a)-i. Evaluate the convergence of the Gibbs sampler
+## ii) Analyze the daily precipitation using your Gibbs sampler in (a)-i. Evaluate the convergence of the Gibbs sampler
 ## by suitable graphical methods, for example by plotting the trajectories of the sampled Markov chains. 
 
 iter=seq(1001,5000,1)
@@ -208,7 +211,7 @@ plot(param_matrix[2,200:ncol(param_matrix)], type="l")
 plot(param_matrix[3,200:ncol(param_matrix)], type="l")
 plot(param_matrix[4,200:ncol(param_matrix)], type="l")
 
-## It seems like the sampler has converged towards a mixture distribution which resembles the histogram of 
+## Conclusion; It seems like the sampler has converged towards a mixture distribution which resembles the histogram of 
 ## the data. The mode of the distribution is approximately at 20*1/100 inches per day. The mixture density
 ## function seems to resemble the reality more accurately than the normal density function. It seems reasonable
 ## to apply a mixture distribution to this type of data since rain is not a constant occurance but can happen
@@ -226,6 +229,6 @@ lines(xGrid, dnorm(xGrid, mean = mean(posteriorMatrix[,1]), sd = mean(sqrt(poste
 legend("topright", box.lty = 1, legend = c("Data histogram","Mixture density","Normal density"), 
        col=c("black","red","blue"), lwd = 2)
 
-## As seen in the new plot, where the only difference is the blue line, the resembles to the previous plot is 
+## Conclusion: As seen in the new plot, where the only difference is the blue line, the resembles to the previous plot is 
 ## obvious. The blue curve has not changed at all which is due to the fact that the mean of Gibbs sampled data,
 ## when iterations go towards infinity, converges to the real mean of the data.

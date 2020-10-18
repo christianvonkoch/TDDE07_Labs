@@ -48,7 +48,7 @@ abline(h=MeanOfPosterior, col="red")
 plot(nVector, stdVector, main="Plot of how the standard deviation converges with respect to the number of draws",
      xlab="Number of draws", ylab="Standard deviation", type="l")
 abline(h=StdOfPosterior, col="red")
-## As seen in the plot the posterior mean as well as the posterior standard deviation converges towards its true
+## Conclusion: As seen in the plot the posterior mean as well as the posterior standard deviation converges towards its true
 ## value of approx 0.29 and 0.09 respectively as the number of randow draws grows large.
 
 ## b) Use simulation (nDraws=10000) to compute the posterior probability Pr(theta>0.3 given y) and compare with
@@ -61,7 +61,7 @@ probHat=sum(draw10000>0.3)/10000
 print(trueProb)
 print(probHat)
 
-## As seen in the results from both calculations the probHat is very close to the true probability from the beta
+## Conclusion: As seen in the results from both calculations the probHat is very close to the true probability from the beta
 ## distribution. As the number of draws increases the approximated probability will converge towards the true
 ## value.
 
